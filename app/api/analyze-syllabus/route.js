@@ -61,7 +61,7 @@ export async function POST(request) {
 
     const ai = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: { apiVersion: "v1" }
+      httpOptions: { apiVersion: "v1beta" }
     });
 
     const prompt = `Analyze this university syllabus and extract its academic structure.
