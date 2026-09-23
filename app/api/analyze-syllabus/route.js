@@ -59,7 +59,10 @@ export async function POST(request) {
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: { apiVersion: "v1" }
+    });
 
     const prompt = `Analyze this university syllabus and extract its academic structure.
 
@@ -77,16 +80,19 @@ Rules:
 SYLLABUS:
 ${text}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: schema
-      }
+    const interaction = await ai.interactions.create({
+      model: "gemini-3.6-flash",
+      input: prompt,
+      response_format: [
+        {
+          type: "text",
+          mime_type: "application/json",
+          schema
+        }
+      ]
     });
 
-    const raw = response.text?.trim();
+    const raw = interaction.output_text?.trim();
 
     if (!raw) {
       throw new Error("Gemini returned an empty response.");
