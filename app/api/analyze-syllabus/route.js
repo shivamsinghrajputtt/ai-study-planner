@@ -83,7 +83,9 @@ ${text}`;
     const interaction = await ai.interactions.create({
       model: "gemini-3.8-flash",
       input: prompt,
-      background: true,
+      generation_config: {
+        thinking_level: "low"
+      },
       response_format: {
         type: "text",
         mime_type: "application/json",
@@ -91,13 +93,15 @@ ${text}`;
       }
     });
 
-    return Response.json(
-      {
-        interactionId: interaction.id,
-        status: interaction.status || "in_progress"
-      },
-      { status: 202 }
-    );
+    const raw = interaction.output_text?.trim();
+
+    if (!raw) {
+      throw new Error("Gemini returned an empty response.");
+    }
+
+    const result = JSON.parse(raw);
+
+    return Response.json(result);
   } catch (error) {
     console.error("Syllabus analysis error:", error);
 
