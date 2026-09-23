@@ -44,7 +44,8 @@ export default function Home() {
         throw new Error(data.error || "Could not extract the PDF.");
       }
 
-        setResult(data);
+      setError("");
+      setResult(data);
       setAnalysis(null);
       setSelectedSubjectIndex("");
       setSelectedUnitIndex("");
