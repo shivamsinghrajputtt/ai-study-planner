@@ -7,6 +7,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -36,10 +38,39 @@ export default function Home() {
       }
 
       setResult(data);
+      setAnalysis(null);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function analyzeSyllabus() {
+    if (!result?.text) return;
+
+    setAnalyzing(true);
+    setError("");
+    setAnalysis(null);
+
+    try {
+      const response = await fetch("/api/analyze-syllabus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: result.text }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not analyze the syllabus.");
+      }
+
+      setAnalysis(data);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setAnalyzing(false);
     }
   }
 
@@ -114,6 +145,48 @@ export default function Home() {
                 Ready for AI
               </span>
             </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={analyzeSyllabus}
+                disabled={analyzing}
+                className="rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {analyzing ? "Analyzing with AI..." : "Analyze Syllabus with AI"}
+              </button>
+              <span className="text-xs text-slate-500">
+                Gemini will identify subjects, units, and topics.
+              </span>
+            </div>
+
+            {analysis && (
+              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-5">
+                <h3 className="text-lg font-semibold">AI syllabus structure</h3>
+                <div className="mt-5 space-y-6">
+                  {analysis.subjects?.map((subject, subjectIndex) => (
+                    <div key={subjectIndex} className="rounded-xl border border-slate-800 p-4">
+                      <h4 className="font-semibold">
+                        {subject.name}
+                        {subject.code ? <span className="ml-2 text-sm text-slate-500">({subject.code})</span> : null}
+                      </h4>
+                      <div className="mt-4 space-y-4">
+                        {subject.units?.map((unit, unitIndex) => (
+                          <div key={unitIndex}>
+                            <p className="text-sm font-medium text-slate-300">{unit.name}</p>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-400">
+                              {unit.topics?.map((topic, topicIndex) => (
+                                <li key={topicIndex}>{topic}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-6">
               <h3 className="mb-2 text-sm font-medium text-slate-300">
