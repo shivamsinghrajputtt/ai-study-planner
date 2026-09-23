@@ -12,7 +12,8 @@
     "next": "latest",
     "pdf-parse": "^1.1.1",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "@google/genai": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
