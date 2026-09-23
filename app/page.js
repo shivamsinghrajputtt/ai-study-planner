@@ -9,6 +9,13 @@ export default function Home() {
   const [error, setError] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState("");
+  const [selectedUnitIndex, setSelectedUnitIndex] = useState("");
+  const [questionCount, setQuestionCount] = useState(5);
+  const [quiz, setQuiz] = useState(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -37,8 +44,13 @@ export default function Home() {
         throw new Error(data.error || "Could not extract the PDF.");
       }
 
-      setResult(data);
+        setResult(data);
       setAnalysis(null);
+      setSelectedSubjectIndex("");
+      setSelectedUnitIndex("");
+      setQuiz(null);
+      setSelectedAnswers({});
+      setQuizSubmitted(false);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -105,6 +117,75 @@ export default function Home() {
       setAnalyzing(false);
     }
   }
+
+  const selectedSubject =
+    selectedSubjectIndex === "" ? null : analysis?.subjects?.[Number(selectedSubjectIndex)];
+
+  const selectedUnit =
+    selectedSubject && selectedUnitIndex !== ""
+      ? selectedSubject.units?.[Number(selectedUnitIndex)]
+      : null;
+
+  async function generateQuiz() {
+    if (!selectedSubject || !selectedUnit?.topics?.length) {
+      setError("Please select a subject and unit first.");
+      return;
+    }
+
+    setQuizLoading(true);
+    setError("");
+    setQuiz(null);
+    setSelectedAnswers({});
+    setQuizSubmitted(false);
+
+    try {
+      const response = await fetch("/api/generate-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: selectedSubject.name,
+          unit: selectedUnit.name,
+          topics: selectedUnit.topics,
+          numberOfQuestions: questionCount,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not generate the quiz.");
+      }
+
+      setQuiz(data);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setQuizLoading(false);
+    }
+  }
+
+  function submitQuiz() {
+    if (!quiz) return;
+
+    const unanswered = quiz.questions.some(
+      (_, index) => selectedAnswers[index] === undefined
+    );
+
+    if (unanswered) {
+      setError("Please answer every question before submitting.");
+      return;
+    }
+
+    setError("");
+    setQuizSubmitted(true);
+  }
+
+  const quizScore =
+    quiz?.questions?.reduce(
+      (score, question, index) =>
+        score + (selectedAnswers[index] === question.correctAnswer ? 1 : 0),
+      0
+    ) || 0;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -188,7 +269,7 @@ export default function Home() {
                 {analyzing ? "Starting AI analysis..." : "Analyze Syllabus with AI"}
               </button>
               <span className="text-xs text-slate-500">
-                Gemini will identify subjects, units, and topics. Analysis runs in the background.
+                Gemini will identify subjects, units, and topics.
               </span>
             </div>
 
@@ -219,6 +300,168 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {analysis?.subjects?.length > 0 && (
+              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-5">
+                <h3 className="text-lg font-semibold">Generate a Quiz</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Choose one subject and unit. The AI will create questions only from that unit&apos;s topics.
+                </p>
+
+                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                  <label>
+                    <span className="mb-2 block text-sm font-medium text-slate-300">Subject</span>
+                    <select
+                      value={selectedSubjectIndex}
+                      onChange={(event) => {
+                        setSelectedSubjectIndex(event.target.value);
+                        setSelectedUnitIndex("");
+                        setQuiz(null);
+                        setSelectedAnswers({});
+                        setQuizSubmitted(false);
+                      }}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-white"
+                    >
+                      <option value="">Select subject</option>
+                      {analysis.subjects.map((subject, index) => (
+                        <option key={index} value={index}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span className="mb-2 block text-sm font-medium text-slate-300">Unit</span>
+                    <select
+                      value={selectedUnitIndex}
+                      onChange={(event) => {
+                        setSelectedUnitIndex(event.target.value);
+                        setQuiz(null);
+                        setSelectedAnswers({});
+                        setQuizSubmitted(false);
+                      }}
+                      disabled={!selectedSubject}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-white disabled:opacity-50"
+                    >
+                      <option value="">Select unit</option>
+                      {selectedSubject?.units?.map((unit, index) => (
+                        <option key={index} value={index}>
+                          {unit.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span className="mb-2 block text-sm font-medium text-slate-300">Questions</span>
+                    <select
+                      value={questionCount}
+                      onChange={(event) => setQuestionCount(Number(event.target.value))}
+                      className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-white"
+                    >
+                      <option value={5}>5 questions</option>
+                      <option value={10}>10 questions</option>
+                    </select>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={generateQuiz}
+                  disabled={quizLoading || !selectedUnit}
+                  className="mt-5 rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {quizLoading ? "Generating Quiz..." : "Generate Quiz"}
+                </button>
+
+                {quiz && (
+                  <div className="mt-6 space-y-5">
+                    <div>
+                      <h4 className="text-base font-semibold">
+                        {quiz.subject} · {quiz.unit}
+                      </h4>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {quiz.questions.length} questions
+                      </p>
+                    </div>
+
+                    {quiz.questions.map((question, questionIndex) => (
+                      <div
+                        key={questionIndex}
+                        className="rounded-xl border border-slate-800 p-4"
+                      >
+                        <p className="font-medium text-slate-200">
+                          {questionIndex + 1}. {question.question}
+                        </p>
+
+                        <div className="mt-4 space-y-2">
+                          {question.options.map((option, optionIndex) => {
+                            const isSelected = selectedAnswers[questionIndex] === optionIndex;
+                            const isCorrect = question.correctAnswer === optionIndex;
+                            const showResult = quizSubmitted;
+
+                            return (
+                              <label
+                                key={optionIndex}
+                                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition ${
+                                  showResult && isCorrect
+                                    ? "border-emerald-700 bg-emerald-950/30 text-emerald-200"
+                                    : showResult && isSelected
+                                      ? "border-red-700 bg-red-950/30 text-red-200"
+                                      : "border-slate-800 hover:border-slate-600"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`question-${questionIndex}`}
+                                  checked={isSelected}
+                                  disabled={quizSubmitted}
+                                  onChange={() =>
+                                    setSelectedAnswers((current) => ({
+                                      ...current,
+                                      [questionIndex]: optionIndex,
+                                    }))
+                                  }
+                                  className="mt-1"
+                                />
+                                <span>{option}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        {quizSubmitted && (
+                          <p className="mt-3 text-sm text-slate-400">
+                            {question.explanation}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+
+                    {!quizSubmitted ? (
+                      <button
+                        type="button"
+                        onClick={submitQuiz}
+                        className="rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200"
+                      >
+                        Submit Quiz
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+                        <p className="text-2xl font-bold">
+                          Score: {quizScore} / {quiz.questions.length}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-400">
+                          {Math.round((quizScore / quiz.questions.length) * 100)}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
 
             <div className="mt-6">
               <h3 className="mb-2 text-sm font-medium text-slate-300">
