@@ -81,8 +81,13 @@ SYLLABUS:
 ${text}`;
 
     const interaction = await ai.interactions.create({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.8-flash",
       input: prompt,
+      background: true,
+      generation_config: {
+        thinking_level: "low",
+        max_output_tokens: 12000
+      },
       response_format: [
         {
           type: "text",
@@ -92,15 +97,13 @@ ${text}`;
       ]
     });
 
-    const raw = interaction.output_text?.trim();
-
-    if (!raw) {
-      throw new Error("Gemini returned an empty response.");
-    }
-
-    const result = JSON.parse(raw);
-
-    return Response.json(result);
+    return Response.json(
+      {
+        interactionId: interaction.id,
+        status: interaction.status || "in_progress"
+      },
+      { status: 202 }
+    );
   } catch (error) {
     console.error("Syllabus analysis error:", error);
 
