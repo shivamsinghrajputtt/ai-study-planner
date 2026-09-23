@@ -19,7 +19,7 @@ export async function GET(request) {
 
     const ai = new GoogleGenAI({
       apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: { apiVersion: "v1" }
+      httpOptions: { apiVersion: "v1beta" }
     });
 
     const interaction = await ai.interactions.get(interactionId);
