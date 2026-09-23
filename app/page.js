@@ -62,11 +62,43 @@ export default function Home() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Could not analyze the syllabus.");
+      if (!response.ok && response.status !== 202) {
+        throw new Error(data.error || "Could not start syllabus analysis.");
       }
 
-      setAnalysis(data);
+      if (!data.interactionId) {
+        setAnalysis(data);
+        return;
+      }
+
+      let completed = false;
+
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const statusResponse = await fetch(
+          `/api/analyze-syllabus/status?id=${encodeURIComponent(data.interactionId)}`
+        );
+        const statusData = await statusResponse.json();
+
+        if (!statusResponse.ok) {
+          throw new Error(statusData.error || "Could not check analysis status.");
+        }
+
+        if (statusData.status === "completed") {
+          setAnalysis(statusData.result);
+          completed = true;
+          break;
+        }
+
+        if (statusData.status === "failed") {
+          throw new Error(statusData.error || "Gemini analysis failed.");
+        }
+      }
+
+      if (!completed) {
+        throw new Error("Analysis is taking longer than expected. Please try again.");
+      }
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -153,10 +185,10 @@ export default function Home() {
                 disabled={analyzing}
                 className="rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {analyzing ? "Analyzing with AI..." : "Analyze Syllabus with AI"}
+                {analyzing ? "Starting AI analysis..." : "Analyze Syllabus with AI"}
               </button>
               <span className="text-xs text-slate-500">
-                Gemini will identify subjects, units, and topics.
+                Gemini will identify subjects, units, and topics. Analysis runs in the background.
               </span>
             </div>
 
