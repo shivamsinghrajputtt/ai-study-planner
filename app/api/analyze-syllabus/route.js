@@ -84,17 +84,11 @@ ${text}`;
       model: "gemini-3.8-flash",
       input: prompt,
       background: true,
-      generation_config: {
-        thinking_level: "low",
-        max_output_tokens: 12000
-      },
-      response_format: [
-        {
-          type: "text",
-          mime_type: "application/json",
-          schema
-        }
-      ]
+      response_format: {
+        type: "text",
+        mime_type: "application/json",
+        schema
+      }
     });
 
     return Response.json(
