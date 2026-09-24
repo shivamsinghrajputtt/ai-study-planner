@@ -760,8 +760,8 @@ export default function Home() {
                     )}
 
                   </div>
+                  </div>
                 )}
-
 
             <div className="mt-6">
               <h3 className="mb-2 text-sm font-medium text-slate-300">
