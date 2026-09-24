@@ -762,6 +762,7 @@ export default function Home() {
                   </div>
                 )}
 
+                </div>
 
             <div className="mt-6">
               <h3 className="mb-2 text-sm font-medium text-slate-300">
@@ -770,7 +771,6 @@ export default function Home() {
               <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950 p-5 text-sm leading-6 text-slate-300">
                 {result.text || "No selectable text was found in this PDF."}
               </pre>
-            </div>
             </div>
           </section>
         )}
