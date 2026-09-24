@@ -84,8 +84,8 @@ ${text}`;
       model: "gemini-3.5-flash-lite",
       input: prompt,
       generation_config: {
-        thinking_level: "low",
-        max_output_tokens: 7000
+        thinking_level: "minimal",
+        max_output_tokens: 16000
       },
       response_format: {
         type: "text",
