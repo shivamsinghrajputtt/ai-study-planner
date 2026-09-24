@@ -3,6 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 export const runtime = "nodejs";
 
 const MAX_TEXT_LENGTH = 100000;
+const CHUNK_SIZE = 7500;
+const CHUNK_OVERLAP = 700;
 
 const schema = {
   type: "object",
@@ -36,6 +38,163 @@ const schema = {
   required: ["subjects"]
 };
 
+function splitIntoChunks(text) {
+  const chunks = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const hardEnd = Math.min(start + CHUNK_SIZE, text.length);
+
+    if (hardEnd === text.length) {
+      chunks.push(text.slice(start));
+      break;
+    }
+
+    const searchStart = Math.max(start, hardEnd - 1200);
+    const breakAt = text.lastIndexOf("\n", hardEnd);
+    const safeBreak = breakAt >= searchStart ? breakAt : hardEnd;
+
+    chunks.push(text.slice(start, safeBreak).trim());
+
+    const nextStart = Math.max(safeBreak - CHUNK_OVERLAP, start + 1);
+    start = nextStart;
+  }
+
+  return chunks.filter(Boolean);
+}
+
+function mergeAnalyses(results) {
+  const subjectMap = new Map();
+
+  for (const result of results) {
+    for (const subject of result?.subjects || []) {
+      const name = typeof subject.name === "string" ? subject.name.trim() : "";
+      if (!name) continue;
+
+      const key = name.toLowerCase();
+      let merged = subjectMap.get(key);
+
+      if (!merged) {
+        merged = {
+          name,
+          code: typeof subject.code === "string" ? subject.code.trim() : "",
+          units: []
+        };
+        subjectMap.set(key, merged);
+      } else if (!merged.code && typeof subject.code === "string") {
+        merged.code = subject.code.trim();
+      }
+
+      for (const unit of subject.units || []) {
+        const unitName = typeof unit.name === "string" ? unit.name.trim() : "";
+        if (!unitName) continue;
+
+        const unitKey = unitName.toLowerCase();
+        let mergedUnit = merged.units.find(
+          (item) => item.name.trim().toLowerCase() === unitKey
+        );
+
+        if (!mergedUnit) {
+          mergedUnit = { name: unitName, topics: [] };
+          merged.units.push(mergedUnit);
+        }
+
+        for (const topic of unit.topics || []) {
+          if (typeof topic !== "string") continue;
+          const cleanTopic = topic.trim();
+          if (!cleanTopic) continue;
+
+          const exists = mergedUnit.topics.some(
+            (item) => item.toLowerCase() === cleanTopic.toLowerCase()
+          );
+
+          if (!exists) {
+            mergedUnit.topics.push(cleanTopic);
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    subjects: [...subjectMap.values()].filter(
+      (subject) => subject.units.some((unit) => unit.topics.length > 0)
+    )
+  };
+}
+
+async function analyzeChunk(ai, chunk, index, total) {
+  const prompt = `Analyze this PART of a university syllabus.
+
+This is chunk ${index + 1} of ${total}. The chunk may start or end in the middle of a subject or unit.
+
+Return only information explicitly supported by this chunk. Do not invent missing subjects, units, topics, codes, or details.
+
+Rules:
+- Identify course/subject names and codes when they appear.
+- Group topics under the correct unit/module when the unit heading is present.
+- If a topic clearly belongs to a unit whose heading appeared just before this chunk, keep it under that unit.
+- Ignore page numbers, exam instructions, references, textbooks, administrative text, and repeated university headers.
+- Keep topic strings concise but complete.
+- It is valid to return only the subjects/units/topics visible in this chunk.
+- Return an empty string for a missing course code.
+
+SYLLABUS CHUNK:
+${chunk}`;
+
+  const request = {
+    model: "gemini-3.5-flash-lite",
+    input: prompt,
+    generation_config: {
+      thinking_level: "minimal",
+      max_output_tokens: 3000
+    },
+    response_format: {
+      type: "text",
+      mime_type: "application/json",
+      schema
+    }
+  };
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const interaction = await ai.interactions.create(request);
+
+    if (interaction.status === "incomplete") {
+      if (attempt === 1) {
+        throw new Error(`Gemini truncated syllabus chunk ${index + 1}.`);
+      }
+      continue;
+    }
+
+    const raw = interaction.output_text?.trim();
+
+    if (!raw) {
+      if (attempt === 1) {
+        throw new Error(`Gemini returned an empty response for syllabus chunk ${index + 1}.`);
+      }
+      continue;
+    }
+
+    try {
+      const result = JSON.parse(raw);
+
+      if (!Array.isArray(result.subjects)) {
+        throw new Error("Invalid subjects array.");
+      }
+
+      return result;
+    } catch (error) {
+      if (attempt === 1) {
+        throw new Error(
+          `Gemini returned invalid JSON for syllabus chunk ${index + 1}: ${error.message}`
+        );
+      }
+    }
+  }
+
+  throw new Error(`Could not analyze syllabus chunk ${index + 1}.`);
+}
+
 export async function POST(request) {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -64,83 +223,23 @@ export async function POST(request) {
       httpOptions: { apiVersion: "v1beta" }
     });
 
-    const prompt = `Analyze this university syllabus and extract its academic structure.
+    const chunks = splitIntoChunks(text);
 
-Return only information that is explicitly supported by the syllabus. Do not invent subjects, units, or topics.
-
-Rules:
-- Identify each subject/course.
-- Preserve subject names and course codes when present.
-- Group topics under the correct unit/module.
-- Keep topic names concise but complete.
-- Ignore page numbers, exam instructions, textbook/reference lists, and administrative text.
-- If a subject has no clear units, create one unit named "Topics" and place its syllabus topics there.
-- Return an empty string for a missing course code.
-
-SYLLABUS:
-${text}`;
-
-    const interaction = await ai.interactions.create({
-      model: "gemini-3.5-flash-lite",
-      input: prompt,
-      generation_config: {
-        thinking_level: "minimal",
-        max_output_tokens: 16000
-      },
-      response_format: {
-        type: "text",
-        mime_type: "application/json",
-        schema
-      }
-    });
-
-    const raw = interaction.output_text?.trim();
-
-    if (!raw) {
-      throw new Error("Gemini returned an empty response.");
+    if (!chunks.length) {
+      return Response.json({ error: "Could not split syllabus text for analysis." }, { status: 400 });
     }
 
-    let result;
+    const results = await Promise.all(
+      chunks.map((chunk, index) => analyzeChunk(ai, chunk, index, chunks.length))
+    );
 
-    try {
-      result = JSON.parse(raw);
-    } catch (parseError) {
-      console.warn("Gemini returned malformed JSON; retrying once.", parseError);
+    const merged = mergeAnalyses(results);
 
-      const retry = await ai.interactions.create({
-        model: "gemini-3.5-flash-lite",
-        input: `${prompt}
-
-IMPORTANT: Your previous response was not valid JSON. Retry once.
-Return ONLY one valid JSON object matching the provided schema.
-Do not use markdown fences.
-Do not put literal line breaks inside string values.
-Keep every topic as a short single-line string.`,
-        generation_config: {
-          thinking_level: "low",
-          max_output_tokens: 7000
-        },
-        response_format: {
-          type: "text",
-          mime_type: "application/json",
-          schema
-        }
-      });
-
-      const retryRaw = retry.output_text?.trim();
-
-      if (!retryRaw) {
-        throw new Error("Gemini returned an empty response on retry.");
-      }
-
-      result = JSON.parse(retryRaw);
+    if (!merged.subjects.length) {
+      throw new Error("Gemini could not identify any syllabus subjects or topics.");
     }
 
-    if (!Array.isArray(result.subjects)) {
-      throw new Error("Gemini returned an invalid syllabus structure.");
-    }
-
-    return Response.json(result);
+    return Response.json(merged);
   } catch (error) {
     console.error("Syllabus analysis error:", error);
 
