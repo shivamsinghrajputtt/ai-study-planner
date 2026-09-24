@@ -16,6 +16,7 @@ export default function Home() {
   const [quizLoading, setQuizLoading] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [weakTopics, setWeakTopics] = useState([]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -52,6 +53,7 @@ export default function Home() {
       setQuiz(null);
       setSelectedAnswers({});
       setQuizSubmitted(false);
+      setWeakTopics([]);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -179,6 +181,19 @@ export default function Home() {
 
     setError("");
     setQuizSubmitted(true);
+
+    const topicCounts = quiz.questions.reduce((counts, question, index) => {
+      if (selectedAnswers[index] !== question.correctAnswer) {
+        counts[question.topic] = (counts[question.topic] || 0) + 1;
+      }
+      return counts;
+    }, {});
+
+    setWeakTopics(
+      Object.entries(topicCounts)
+        .sort(([, a], [, b]) => b - a)
+        .map(([topic, wrongCount]) => ({ topic, wrongCount }))
+    );
   }
 
   const quizScore =
@@ -436,6 +451,9 @@ export default function Home() {
                           <p className="mt-3 text-sm text-slate-400">
                             {question.explanation}
                           </p>
+                          <p className="mt-2 text-xs text-slate-500">
+                            Topic: {question.topic}
+                          </p>
                         )}
                       </div>
                     ))}
@@ -456,6 +474,34 @@ export default function Home() {
                         <p className="mt-1 text-sm text-slate-400">
                           {Math.round((quizScore / quiz.questions.length) * 100)}%
                         </p>
+                      </div>
+
+                      <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-5">
+                        <h4 className="font-semibold text-amber-200">Weak Topic Detection</h4>
+                        {weakTopics.length > 0 ? (
+                          <>
+                            <p className="mt-1 text-sm text-slate-400">
+                              Review these syllabus topics based on your incorrect answers.
+                            </p>
+                            <div className="mt-4 space-y-2">
+                              {weakTopics.map(({ topic, wrongCount }) => (
+                                <div
+                                  key={topic}
+                                  className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950 px-4 py-3"
+                                >
+                                  <span className="text-sm text-slate-200">{topic}</span>
+                                  <span className="text-xs text-amber-300">
+                                    {wrongCount} wrong
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="mt-2 text-sm text-emerald-300">
+                            No weak topics detected in this quiz. Great job!
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
