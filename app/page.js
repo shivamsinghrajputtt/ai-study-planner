@@ -761,8 +761,6 @@ export default function Home() {
 
                   </div>
                 )}
-              </div>
-            )}
 
 
             <div className="mt-6">
