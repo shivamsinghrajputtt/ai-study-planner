@@ -100,7 +100,45 @@ ${text}`;
       throw new Error("Gemini returned an empty response.");
     }
 
-    const result = JSON.parse(raw);
+    let result;
+
+    try {
+      result = JSON.parse(raw);
+    } catch (parseError) {
+      console.warn("Gemini returned malformed JSON; retrying once.", parseError);
+
+      const retry = await ai.interactions.create({
+        model: "gemini-3.5-flash-lite",
+        input: `${prompt}
+
+IMPORTANT: Your previous response was not valid JSON. Retry once.
+Return ONLY one valid JSON object matching the provided schema.
+Do not use markdown fences.
+Do not put literal line breaks inside string values.
+Keep every topic as a short single-line string.`,
+        generation_config: {
+          thinking_level: "low",
+          max_output_tokens: 1800
+        },
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema
+        }
+      });
+
+      const retryRaw = retry.output_text?.trim();
+
+      if (!retryRaw) {
+        throw new Error("Gemini returned an empty response on retry.");
+      }
+
+      result = JSON.parse(retryRaw);
+    }
+
+    if (!Array.isArray(result.subjects)) {
+      throw new Error("Gemini returned an invalid syllabus structure.");
+    }
 
     return Response.json(result);
   } catch (error) {
