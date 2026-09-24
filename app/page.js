@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function Home() {
   const [file, setFile] = useState(null);
@@ -22,6 +22,8 @@ export default function Home() {
   const [studyPlan, setStudyPlan] = useState(null);
   const [studyPlanLoading, setStudyPlanLoading] = useState(false);
   const [completedDays, setCompletedDays] = useState({});
+  const [selectedPlanDay, setSelectedPlanDay] = useState(1);
+  const studyPlanRequestRef = useRef(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -139,6 +141,8 @@ export default function Home() {
       : null;
 
   async function generateQuiz() {
+    if (studyPlanRequestRef.current || studyPlanLoading) return;
+
     if (!selectedSubject || !selectedUnit?.topics?.length) {
       setError("Please select a subject and unit first.");
       return;
@@ -223,6 +227,7 @@ export default function Home() {
       return;
     }
 
+    studyPlanRequestRef.current = true;
     setStudyPlanLoading(true);
     setError("");
     setStudyPlan(null);
@@ -249,9 +254,11 @@ export default function Home() {
 
       setStudyPlan(data);
       setCompletedDays({});
+      setSelectedPlanDay(1);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
+      studyPlanRequestRef.current = false;
       setStudyPlanLoading(false);
     }
   }
@@ -620,102 +627,137 @@ export default function Home() {
                       disabled={studyPlanLoading || !examDate}
                       className="mt-5 rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {studyPlanLoading ? "Creating Study Plan..." : "Create Study Plan"}
+                      {studyPlanLoading ? "Creating Study Plan..." : studyPlan ? "Regenerate Study Plan" : "Create Study Plan"}
                     </button>
 
                     {studyPlan && (
-                      <div className="mt-6">
-                        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-sm font-medium text-slate-200">
-                              Progress
-                            </p>
-                            <span className="text-sm text-slate-400">
-                              {Object.values(completedDays).filter(Boolean).length} / {studyPlan.days?.length || 0} days
-                            </span>
+                      <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                            <p className="text-xs uppercase tracking-wide text-slate-500">Plan</p>
+                            <p className="mt-1 text-lg font-semibold">{studyPlan.daysAvailable} days</p>
                           </div>
-                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
-                            <div
-                              className="h-full rounded-full bg-emerald-500 transition-all"
-                              style={{
-                                width: `${studyPlan.days?.length ? (Object.values(completedDays).filter(Boolean).length / studyPlan.days.length) * 100 : 0}%`
-                              }}
-                            />
+                          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                            <p className="text-xs uppercase tracking-wide text-slate-500">Daily time</p>
+                            <p className="mt-1 text-lg font-semibold">{studyPlan.dailyHours} hours</p>
                           </div>
-                        </div>
-                        <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-5">
-                          <p className="text-sm font-medium text-emerald-300">
-                            {studyPlan.daysAvailable} day plan · {studyPlan.dailyHours} hours/day
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">
-                            {studyPlan.summary}
-                          </p>
+                          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs uppercase tracking-wide text-slate-500">Progress</p>
+                              <span className="text-xs text-slate-400">
+                                {Object.values(completedDays).filter(Boolean).length}/{studyPlan.days?.length || 0}
+                              </span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                              <div
+                                className="h-full rounded-full bg-emerald-500 transition-all"
+                                style={{
+                                  width: `${studyPlan.days?.length ? (Object.values(completedDays).filter(Boolean).length / studyPlan.days.length) * 100 : 0}%`
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
 
-                        <div className="mt-5 space-y-4">
-                          {studyPlan.days?.map((day) => (
-                            <div
-                              key={day.day}
-                              className="rounded-xl border border-slate-800 p-4"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <h4 className="font-semibold">
-                                  Day {day.day} · {day.date}
-                                </h4>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xs text-slate-500">
-                                    {day.durationMinutes} min
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setCompletedDays((current) => ({
-                                        ...current,
-                                        [day.day]: !current[day.day],
-                                      }))
-                                    }
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
-                                      completedDays[day.day]
-                                        ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
-                                        : "border-slate-700 text-slate-300 hover:border-slate-500"
-                                    }`}
-                                  >
-                                    {completedDays[day.day] ? "✓ Completed" : "Mark Complete"}
-                                  </button>
+                        <div className="mt-4 rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-4">
+                          <p className="text-sm leading-6 text-slate-300">{studyPlan.summary}</p>
+                        </div>
+
+                        <div className="mt-5">
+                          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">Your study days</p>
+                          <div className="flex gap-2 overflow-x-auto pb-2">
+                            {studyPlan.days?.map((day) => (
+                              <button
+                                key={day.day}
+                                type="button"
+                                onClick={() => setSelectedPlanDay(day.day)}
+                                className={`min-w-[78px] rounded-xl border px-3 py-2 text-left transition ${
+                                  selectedPlanDay === day.day
+                                    ? "border-white bg-white text-slate-950"
+                                    : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
+                                }`}
+                              >
+                                <span className="block text-xs font-medium">Day {day.day}</span>
+                                <span className="mt-1 block text-[11px] opacity-70">{day.date.slice(5)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {(() => {
+                          const activeDay =
+                            studyPlan.days?.find((day) => day.day === selectedPlanDay) ||
+                            studyPlan.days?.[0];
+
+                          if (!activeDay) return null;
+
+                          return (
+                            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-5">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-xs uppercase tracking-wide text-slate-500">Day {activeDay.day}</p>
+                                  <h4 className="mt-1 text-xl font-semibold">{activeDay.focus}</h4>
+                                  <p className="mt-1 text-sm text-slate-500">
+                                    {activeDay.date} · {activeDay.durationMinutes} min
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCompletedDays((current) => ({
+                                      ...current,
+                                      [activeDay.day]: !current[activeDay.day],
+                                    }))
+                                  }
+                                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                                    completedDays[activeDay.day]
+                                      ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
+                                      : "border-slate-700 text-slate-300 hover:border-slate-500"
+                                  }`}
+                                >
+                                  {completedDays[activeDay.day] ? "✓ Completed" : "Mark Complete"}
+                                </button>
+                              </div>
+
+                              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                                <div>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Topics</p>
+                                  <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-300">
+                                    {activeDay.topics?.map((topic, index) => <li key={index}>{topic}</li>)}
+                                  </ul>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tasks</p>
+                                  <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-300">
+                                    {activeDay.tasks?.map((task, index) => <li key={index}>{task}</li>)}
+                                  </ul>
                                 </div>
                               </div>
-                              <p className="mt-2 text-sm font-medium text-slate-300">
-                                {day.focus}
-                              </p>
-                              <div className="mt-3">
-                                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                                  Topics
-                                </p>
-                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-400">
-                                  {day.topics?.map((topic, index) => (
-                                    <li key={index}>{topic}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <div className="mt-3">
-                                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                                  Tasks
-                                </p>
-                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-400">
-                                  {day.tasks?.map((task, index) => (
-                                    <li key={index}>{task}</li>
-                                  ))}
-                                </ul>
+
+                              <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-4">
+                                <button
+                                  type="button"
+                                  disabled={activeDay.day <= 1}
+                                  onClick={() => setSelectedPlanDay(activeDay.day - 1)}
+                                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  ← Previous
+                                </button>
+                                <span className="text-xs text-slate-500">{activeDay.day} of {studyPlan.days?.length}</span>
+                                <button
+                                  type="button"
+                                  disabled={activeDay.day >= studyPlan.days.length}
+                                  onClick={() => setSelectedPlanDay(activeDay.day + 1)}
+                                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-medium text-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  Next →
+                                </button>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })()}
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
-            )}
 
 
             <div className="mt-6">
