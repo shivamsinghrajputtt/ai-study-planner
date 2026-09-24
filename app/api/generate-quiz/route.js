@@ -16,9 +16,10 @@ const schema = {
             items: { type: "string" }
           },
           correctAnswer: { type: "integer" },
-          explanation: { type: "string" }
+          explanation: { type: "string" },
+          topic: { type: "string" }
         },
-        required: ["question", "options", "correctAnswer", "explanation"]
+        required: ["question", "options", "correctAnswer", "explanation", "topic"]
       }
     }
   },
@@ -68,6 +69,7 @@ Requirements:
 - Each question must have exactly 4 options.
 - correctAnswer must be the zero-based index of the correct option (0, 1, 2, or 3).
 - Include a short explanation for the correct answer.
+- For every question, include "topic" containing exactly one of the supplied topic names.
 - Mix conceptual and practical/application questions where the topics allow.
 - Avoid duplicate questions.
 - Return only the requested JSON structure.`;
@@ -100,6 +102,8 @@ Requirements:
     for (const question of result.questions) {
       if (
         typeof question.question !== "string" ||
+        typeof question.topic !== "string" ||
+        !topics.includes(question.topic) ||
         !Array.isArray(question.options) ||
         question.options.length !== 4 ||
         !Number.isInteger(question.correctAnswer) ||
