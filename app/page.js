@@ -21,6 +21,7 @@ export default function Home() {
   const [dailyHours, setDailyHours] = useState(2);
   const [studyPlan, setStudyPlan] = useState(null);
   const [studyPlanLoading, setStudyPlanLoading] = useState(false);
+  const [completedDays, setCompletedDays] = useState({});
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -61,6 +62,7 @@ export default function Home() {
       setQuizSubmitted(false);
       setWeakTopics([]);
       setStudyPlan(null);
+      setCompletedDays({});
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -246,6 +248,7 @@ export default function Home() {
       }
 
       setStudyPlan(data);
+      setCompletedDays({});
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -622,6 +625,24 @@ export default function Home() {
 
                     {studyPlan && (
                       <div className="mt-6">
+                        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium text-slate-200">
+                              Progress
+                            </p>
+                            <span className="text-sm text-slate-400">
+                              {Object.values(completedDays).filter(Boolean).length} / {studyPlan.days?.length || 0} days
+                            </span>
+                          </div>
+                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                            <div
+                              className="h-full rounded-full bg-emerald-500 transition-all"
+                              style={{
+                                width: `${studyPlan.days?.length ? (Object.values(completedDays).filter(Boolean).length / studyPlan.days.length) * 100 : 0}%`
+                              }}
+                            />
+                          </div>
+                        </div>
                         <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-5">
                           <p className="text-sm font-medium text-emerald-300">
                             {studyPlan.daysAvailable} day plan · {studyPlan.dailyHours} hours/day
@@ -641,9 +662,27 @@ export default function Home() {
                                 <h4 className="font-semibold">
                                   Day {day.day} · {day.date}
                                 </h4>
-                                <span className="text-xs text-slate-500">
-                                  {day.durationMinutes} min
-                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs text-slate-500">
+                                    {day.durationMinutes} min
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setCompletedDays((current) => ({
+                                        ...current,
+                                        [day.day]: !current[day.day],
+                                      }))
+                                    }
+                                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                                      completedDays[day.day]
+                                        ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
+                                        : "border-slate-700 text-slate-300 hover:border-slate-500"
+                                    }`}
+                                  >
+                                    {completedDays[day.day] ? "✓ Completed" : "Mark Complete"}
+                                  </button>
+                                </div>
                               </div>
                               <p className="mt-2 text-sm font-medium text-slate-300">
                                 {day.focus}
