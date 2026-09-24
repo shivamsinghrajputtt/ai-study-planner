@@ -85,7 +85,7 @@ ${text}`;
       input: prompt,
       generation_config: {
         thinking_level: "low",
-        max_output_tokens: 1800
+        max_output_tokens: 7000
       },
       response_format: {
         type: "text",
@@ -118,7 +118,7 @@ Do not put literal line breaks inside string values.
 Keep every topic as a short single-line string.`,
         generation_config: {
           thinking_level: "low",
-          max_output_tokens: 1800
+          max_output_tokens: 7000
         },
         response_format: {
           type: "text",
