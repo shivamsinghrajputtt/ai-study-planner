@@ -79,7 +79,7 @@ Requirements:
       input: prompt,
       generation_config: {
         thinking_level: "low",
-        max_output_tokens: 2200
+        max_output_tokens: 5000
       },
       response_format: {
         type: "text",
