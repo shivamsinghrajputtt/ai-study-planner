@@ -23,10 +23,15 @@ export default function Home() {
   const [studyPlanLoading, setStudyPlanLoading] = useState(false);
   const [completedDays, setCompletedDays] = useState({});
   const [selectedPlanDay, setSelectedPlanDay] = useState(1);
+  const extractRequestRef = useRef(false);
+  const analyzeRequestRef = useRef(false);
+  const quizRequestRef = useRef(false);
   const studyPlanRequestRef = useRef(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (extractRequestRef.current || loading) return;
 
     const selectedFile = event.currentTarget.elements.namedItem("file")?.files?.[0];
 
@@ -35,6 +40,7 @@ export default function Home() {
       return;
     }
 
+    extractRequestRef.current = true;
     setLoading(true);
     setError("");
     setResult(null);
@@ -68,13 +74,20 @@ export default function Home() {
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
+      extractRequestRef.current = false;
       setLoading(false);
     }
   }
 
   async function analyzeSyllabus() {
-    if (!result?.text) return;
+    if (analyzeRequestRef.current || analyzing) return;
 
+    if (!result?.text) {
+      setError("Please extract a PDF first.");
+      return;
+    }
+
+    analyzeRequestRef.current = true;
     setAnalyzing(true);
     setError("");
     setAnalysis(null);
@@ -88,46 +101,19 @@ export default function Home() {
 
       const data = await response.json();
 
-      if (!response.ok && response.status !== 202) {
-        throw new Error(data.error || "Could not start syllabus analysis.");
+      if (!response.ok) {
+        throw new Error(data.error || "Could not analyze the syllabus.");
       }
 
-      if (!data.interactionId) {
-        setAnalysis(data);
-        return;
+      if (!data?.subjects) {
+        throw new Error("AI returned an invalid syllabus structure.");
       }
 
-      let completed = false;
-
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        const statusResponse = await fetch(
-          `/api/analyze-syllabus/status?id=${encodeURIComponent(data.interactionId)}`
-        );
-        const statusData = await statusResponse.json();
-
-        if (!statusResponse.ok) {
-          throw new Error(statusData.error || "Could not check analysis status.");
-        }
-
-        if (statusData.status === "completed") {
-          setAnalysis(statusData.result);
-          completed = true;
-          break;
-        }
-
-        if (statusData.status === "failed") {
-          throw new Error(statusData.error || "Gemini analysis failed.");
-        }
-      }
-
-      if (!completed) {
-        throw new Error("Analysis is taking longer than expected. Please try again.");
-      }
+      setAnalysis(data);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
+      analyzeRequestRef.current = false;
       setAnalyzing(false);
     }
   }
@@ -141,11 +127,14 @@ export default function Home() {
       : null;
 
   async function generateQuiz() {
+    if (quizRequestRef.current || quizLoading) return;
+
     if (!selectedSubject || !selectedUnit?.topics?.length) {
       setError("Please select a subject and unit first.");
       return;
     }
 
+    quizRequestRef.current = true;
     setQuizLoading(true);
     setError("");
     setQuiz(null);
@@ -170,10 +159,15 @@ export default function Home() {
         throw new Error(data.error || "Could not generate the quiz.");
       }
 
+      if (!Array.isArray(data?.questions) || data.questions.length === 0) {
+        throw new Error("AI returned an empty quiz.");
+      }
+
       setQuiz(data);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
+      quizRequestRef.current = false;
       setQuizLoading(false);
     }
   }
@@ -217,8 +211,13 @@ export default function Home() {
   async function generateStudyPlan() {
     if (studyPlanRequestRef.current || studyPlanLoading) return;
 
+    if (!quizSubmitted) {
+      setError("Please submit the quiz before creating a study plan.");
+      return;
+    }
+
     if (!selectedSubject || !selectedUnit?.topics?.length) {
-      setError("Please complete a quiz and select a subject and unit first.");
+      setError("Please select a subject and unit first.");
       return;
     }
 
@@ -250,6 +249,10 @@ export default function Home() {
 
       if (!response.ok) {
         throw new Error(data.error || "Could not generate the study plan.");
+      }
+
+      if (!Array.isArray(data?.days) || data.days.length === 0) {
+        throw new Error("AI returned an empty study plan.");
       }
 
       setStudyPlan(data);
