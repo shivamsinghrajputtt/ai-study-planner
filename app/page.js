@@ -28,12 +28,10 @@ export default function Home() {
   const quizRequestRef = useRef(false);
   const studyPlanRequestRef = useRef(false);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
+  async function handleSubmit() {
     if (extractRequestRef.current || loading) return;
 
-    const selectedFile = event.currentTarget.elements.namedItem("file")?.files?.[0];
+    const selectedFile = file;
 
     if (!selectedFile) {
       setError("Please select a PDF first.");
@@ -43,7 +41,6 @@ export default function Home() {
     extractRequestRef.current = true;
     setLoading(true);
     setError("");
-    setResult(null);
 
     try {
       const formData = new FormData();
@@ -282,8 +279,7 @@ export default function Home() {
           next version can identify topics with AI.
         </p>
 
-        <form
-          onSubmit={handleSubmit}
+        <div
           className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl"
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -305,8 +301,9 @@ export default function Home() {
             </label>
 
             <button
-              type="submit"
-              disabled={loading}
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading || !file}
               className="rounded-xl bg-white px-6 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Extracting..." : "Extract PDF"}
@@ -322,7 +319,7 @@ export default function Home() {
               {error}
             </div>
           )}
-        </form>
+        </div>
 
         {result && (
           <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
