@@ -141,8 +141,6 @@ export default function Home() {
       : null;
 
   async function generateQuiz() {
-    if (studyPlanRequestRef.current || studyPlanLoading) return;
-
     if (!selectedSubject || !selectedUnit?.topics?.length) {
       setError("Please select a subject and unit first.");
       return;
@@ -217,6 +215,8 @@ export default function Home() {
     ) || 0;
 
   async function generateStudyPlan() {
+    if (studyPlanRequestRef.current || studyPlanLoading) return;
+
     if (!selectedSubject || !selectedUnit?.topics?.length) {
       setError("Please complete a quiz and select a subject and unit first.");
       return;
