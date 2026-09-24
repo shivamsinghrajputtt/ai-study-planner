@@ -31,6 +31,63 @@ const schema = {
   required: ["summary", "days"]
 };
 
+function buildFallbackPlan({ subject, unit, topics, weakTopics, examDate, dailyHours, daysAvailable }) {
+  const weak = weakTopics
+    .slice()
+    .sort((a, b) => b.wrongCount - a.wrongCount)
+    .map((item) => item.topic)
+    .filter(Boolean);
+
+  const orderedTopics = [...new Set([...weak, ...topics])];
+  const maxMinutes = Math.round(dailyHours * 60);
+  const safeMinutes = Math.max(30, maxMinutes);
+  const planDays = [];
+
+  for (let index = 0; index < daysAvailable; index += 1) {
+    const date = new Date(examDate + "T00:00:00Z");
+    date.setUTCDate(date.getUTCDate() - (daysAvailable - 1 - index));
+    const dateString = date.toISOString().slice(0, 10);
+
+    const topic = orderedTopics[index % orderedTopics.length];
+    const isFinalDay = index === daysAvailable - 1;
+    const focus = isFinalDay
+      ? "Final revision and weak-topic review"
+      : weak.includes(topic)
+        ? "Weak-topic focused revision"
+        : "Concept learning and active recall";
+
+    const dayTopics = isFinalDay
+      ? [...new Set([...weak, ...topics])].slice(0, Math.max(1, Math.min(4, topics.length)))
+      : [topic];
+
+    const tasks = isFinalDay
+      ? [
+          "Review the key concepts from the selected unit.",
+          "Revisit weak topics and test yourself without notes.",
+          "Do a final active-recall revision of the unit."
+        ]
+      : [
+          `Study and understand: ${topic}`,
+          "Write short notes or key points from memory.",
+          "Finish with 10–15 minutes of active recall."
+        ];
+
+    planDays.push({
+      day: index + 1,
+      date: dateString,
+      focus,
+      topics: dayTopics,
+      tasks,
+      durationMinutes: safeMinutes
+    });
+  }
+
+  return {
+    summary: `A ${daysAvailable}-day study plan for ${subject} · ${unit}, prioritizing quiz weak topics and covering the supplied syllabus topics within ${dailyHours} hours per day.`,
+    days: planDays
+  };
+}
+
 function daysBetweenTodayAnd(examDate) {
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
@@ -129,29 +186,47 @@ Rules:
 - Do not invent topics or resources.
 - Return only the requested JSON structure.`;
 
-    const interaction = await ai.interactions.create({
-      model: "gemini-3.5-flash-lite",
-      input: prompt,
-      generation_config: {
-        thinking_level: "low"
-      },
-      response_format: {
-        type: "text",
-        mime_type: "application/json",
-        schema
+    let result;
+    let aiGenerated = true;
+
+    try {
+      const interaction = await ai.interactions.create({
+        model: "gemini-3.5-flash-lite",
+        input: prompt,
+        generation_config: {
+          thinking_level: "low",
+          max_output_tokens: 2600
+        },
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema
+        }
+      });
+
+      const raw = interaction.output_text?.trim();
+
+      if (!raw) {
+        throw new Error("Gemini returned an empty study plan response.");
       }
-    });
 
-    const raw = interaction.output_text?.trim();
+      result = JSON.parse(raw);
 
-    if (!raw) {
-      throw new Error("Gemini returned an empty study plan response.");
-    }
-
-    const result = JSON.parse(raw);
-
-    if (!Array.isArray(result.days) || result.days.length !== daysAvailable) {
-      throw new Error("Gemini returned an unexpected number of study-plan days.");
+      if (!Array.isArray(result.days) || result.days.length !== daysAvailable) {
+        throw new Error("Gemini returned an unexpected number of study-plan days.");
+      }
+    } catch (aiError) {
+      console.error("AI study plan generation failed; using deterministic fallback:", aiError);
+      aiGenerated = false;
+      result = buildFallbackPlan({
+        subject,
+        unit,
+        topics,
+        weakTopics,
+        examDate,
+        dailyHours,
+        daysAvailable
+      });
     }
 
     return Response.json({
@@ -160,6 +235,7 @@ Rules:
       examDate,
       dailyHours,
       daysAvailable,
+      aiGenerated,
       ...result
     });
   } catch (error) {
