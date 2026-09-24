@@ -17,6 +17,10 @@ export default function Home() {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [weakTopics, setWeakTopics] = useState([]);
+  const [examDate, setExamDate] = useState("");
+  const [dailyHours, setDailyHours] = useState(2);
+  const [studyPlan, setStudyPlan] = useState(null);
+  const [studyPlanLoading, setStudyPlanLoading] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -54,6 +58,7 @@ export default function Home() {
       setSelectedAnswers({});
       setQuizSubmitted(false);
       setWeakTopics([]);
+      setStudyPlan(null);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -202,6 +207,49 @@ export default function Home() {
         score + (selectedAnswers[index] === question.correctAnswer ? 1 : 0),
       0
     ) || 0;
+
+  async function generateStudyPlan() {
+    if (!selectedSubject || !selectedUnit?.topics?.length) {
+      setError("Please complete a quiz and select a subject and unit first.");
+      return;
+    }
+
+    if (!examDate) {
+      setError("Please select your exam date.");
+      return;
+    }
+
+    setStudyPlanLoading(true);
+    setError("");
+    setStudyPlan(null);
+
+    try {
+      const response = await fetch("/api/study-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: selectedSubject.name,
+          unit: selectedUnit.name,
+          topics: selectedUnit.topics,
+          weakTopics,
+          examDate,
+          dailyHours,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not generate the study plan.");
+      }
+
+      setStudyPlan(data);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setStudyPlanLoading(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -507,6 +555,120 @@ export default function Home() {
                         )}
                         </div>
                       </>
+                    )}
+                  </div>
+                )}
+
+                {quizSubmitted && selectedSubject && selectedUnit && (
+                  <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-5">
+                    <h3 className="text-lg font-semibold">Personalized Study Plan</h3>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Turn your quiz performance into a day-by-day revision plan.
+                    </p>
+
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                      <label>
+                        <span className="mb-2 block text-sm font-medium text-slate-300">
+                          Exam date
+                        </span>
+                        <input
+                          type="date"
+                          value={examDate}
+                          min={new Date().toISOString().split("T")[0]}
+                          onChange={(event) => {
+                            setExamDate(event.target.value);
+                            setStudyPlan(null);
+                            setError("");
+                          }}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-white"
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-2 block text-sm font-medium text-slate-300">
+                          Daily study time
+                        </span>
+                        <select
+                          value={dailyHours}
+                          onChange={(event) => {
+                            setDailyHours(Number(event.target.value));
+                            setStudyPlan(null);
+                          }}
+                          className="w-full rounded-xl border border-slate-700 bg-slate-900 p-3 text-sm text-white"
+                        >
+                          <option value={1}>1 hour/day</option>
+                          <option value={1.5}>1.5 hours/day</option>
+                          <option value={2}>2 hours/day</option>
+                          <option value={3}>3 hours/day</option>
+                          <option value={4}>4 hours/day</option>
+                          <option value={5}>5 hours/day</option>
+                          <option value={6}>6 hours/day</option>
+                          <option value={8}>8 hours/day</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={generateStudyPlan}
+                      disabled={studyPlanLoading || !examDate}
+                      className="mt-5 rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {studyPlanLoading ? "Creating Study Plan..." : "Create Study Plan"}
+                    </button>
+
+                    {studyPlan && (
+                      <div className="mt-6">
+                        <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/20 p-5">
+                          <p className="text-sm font-medium text-emerald-300">
+                            {studyPlan.daysAvailable} day plan · {studyPlan.dailyHours} hours/day
+                          </p>
+                          <p className="mt-2 text-sm leading-6 text-slate-300">
+                            {studyPlan.summary}
+                          </p>
+                        </div>
+
+                        <div className="mt-5 space-y-4">
+                          {studyPlan.days?.map((day) => (
+                            <div
+                              key={day.day}
+                              className="rounded-xl border border-slate-800 p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="font-semibold">
+                                  Day {day.day} · {day.date}
+                                </h4>
+                                <span className="text-xs text-slate-500">
+                                  {day.durationMinutes} min
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm font-medium text-slate-300">
+                                {day.focus}
+                              </p>
+                              <div className="mt-3">
+                                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                  Topics
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-400">
+                                  {day.topics?.map((topic, index) => (
+                                    <li key={index}>{topic}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div className="mt-3">
+                                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                  Tasks
+                                </p>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-400">
+                                  {day.tasks?.map((task, index) => (
+                                    <li key={index}>{task}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
