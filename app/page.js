@@ -448,12 +448,14 @@ export default function Home() {
                         </div>
 
                         {quizSubmitted && (
-                          <p className="mt-3 text-sm text-slate-400">
-                            {question.explanation}
-                          </p>
-                          <p className="mt-2 text-xs text-slate-500">
-                            Topic: {question.topic}
-                          </p>
+                          <>
+                            <p className="mt-3 text-sm text-slate-400">
+                              {question.explanation}
+                            </p>
+                            <p className="mt-2 text-xs text-slate-500">
+                              Topic: {question.topic}
+                            </p>
+                          </>
                         )}
                       </div>
                     ))}
@@ -467,16 +469,17 @@ export default function Home() {
                         Submit Quiz
                       </button>
                     ) : (
-                      <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
-                        <p className="text-2xl font-bold">
-                          Score: {quizScore} / {quiz.questions.length}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-400">
-                          {Math.round((quizScore / quiz.questions.length) * 100)}%
-                        </p>
-                      </div>
+                      <>
+                        <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+                          <p className="text-2xl font-bold">
+                            Score: {quizScore} / {quiz.questions.length}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {Math.round((quizScore / quiz.questions.length) * 100)}%
+                          </p>
+                        </div>
 
-                      <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-5">
+                        <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-5">
                         <h4 className="font-semibold text-amber-200">Weak Topic Detection</h4>
                         {weakTopics.length > 0 ? (
                           <>
@@ -502,7 +505,8 @@ export default function Home() {
                             No weak topics detected in this quiz. Great job!
                           </p>
                         )}
-                      </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
