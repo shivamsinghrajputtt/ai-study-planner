@@ -771,6 +771,7 @@ export default function Home() {
                 {result.text || "No selectable text was found in this PDF."}
               </pre>
             </div>
+            </div>
           </section>
         )}
 
