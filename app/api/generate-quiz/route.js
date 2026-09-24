@@ -78,7 +78,8 @@ Requirements:
       model: "gemini-3.5-flash-lite",
       input: prompt,
       generation_config: {
-        thinking_level: "low"
+        thinking_level: "low",
+        max_output_tokens: 2200
       },
       response_format: {
         type: "text",
