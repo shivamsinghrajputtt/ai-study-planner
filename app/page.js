@@ -25,7 +25,9 @@ export default function Home() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!file) {
+    const selectedFile = event.currentTarget.elements.namedItem("file")?.files?.[0];
+
+    if (!selectedFile) {
       setError("Please select a PDF first.");
       return;
     }
@@ -36,7 +38,7 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", selectedFile);
 
       const response = await fetch("/api/extract-pdf", {
         method: "POST",
@@ -277,6 +279,7 @@ export default function Home() {
                 Syllabus PDF
               </span>
               <input
+                name="file"
                 type="file"
                 accept="application/pdf,.pdf"
                 onChange={(event) => {
@@ -290,7 +293,7 @@ export default function Home() {
 
             <button
               type="submit"
-              disabled={loading || !file}
+              disabled={loading}
               className="rounded-xl bg-white px-6 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Extracting..." : "Extract PDF"}
