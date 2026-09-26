@@ -323,8 +323,13 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_80%_35%,rgba(16,185,129,0.08),transparent_25%)]" />
       <div className="pointer-events-none absolute left-[8%] top-24 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl animate-pulse" />
       <div className="pointer-events-none absolute right-[8%] top-[42rem] h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
-      <section className="relative mx-auto max-w-5xl px-6 py-16 sm:py-24">
-        <p className="animate-fade-up text-sm font-medium uppercase tracking-[0.25em] text-slate-400">
+      <section className="relative mx-auto max-w-5xl px-6 py-12 sm:py-20">
+        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-blue-200 shadow-[0_0_30px_rgba(59,130,246,0.08)]">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+          AI Study Planner · V0.4
+        </div>
+
+        <p className="sr-only">
           AI Study Planner · V0.4
         </p>
 
@@ -337,9 +342,40 @@ export default function Home() {
           detect weak topics, and build a personalized study plan.
         </p>
 
+        <div className="animate-fade-up animation-delay-300 mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            ["01", "Upload PDF"],
+            ["02", "AI Analysis"],
+            ["03", "Take Quiz"],
+            ["04", "Study Smarter"],
+          ].map(([number, label], index) => {
+            const done = [!!result, !!analysis, !!quizSubmitted, !!studyPlan][index];
+            return (
+              <div
+                key={number}
+                className={`group rounded-xl border px-3 py-3 transition-all duration-300 ${done ? "border-emerald-700/50 bg-emerald-950/20" : "border-slate-800 bg-slate-900/50 hover:border-slate-700"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] font-bold tracking-widest ${done ? "text-emerald-300" : "text-slate-600"}`}>{number}</span>
+                  {done && <span className="text-xs text-emerald-300">✓</span>}
+                </div>
+                <p className="mt-1 text-xs font-medium text-slate-300">{label}</p>
+              </div>
+            );
+          })}
+        </div>
+
         <div
-          className="animate-fade-up animation-delay-300 mt-10 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-slate-700 hover:shadow-blue-950/20"
+          className="animate-fade-up animation-delay-300 mt-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:border-blue-500/30 hover:shadow-[0_20px_70px_rgba(15,23,42,0.55)]"
         >
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Start your study journey</p>
+              <p className="mt-1 text-xs text-slate-500">Drop in your syllabus and let AI do the organizing.</p>
+            </div>
+            <span className="hidden rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-[11px] text-slate-400 sm:inline-flex">PDF → AI → Quiz → Plan</span>
+          </div>
+
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <label className="flex-1">
               <span className="mb-2 block text-sm font-medium text-slate-200">
@@ -354,7 +390,7 @@ export default function Home() {
                   setError("");
                   setResult(null);
                 }}
-                className="block w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
+                className="block w-full cursor-pointer rounded-xl border border-dashed border-slate-700 bg-slate-950/80 p-3 text-sm text-slate-300 transition-all duration-300 hover:border-blue-500/50 hover:bg-slate-950 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-700"
               />
             </label>
 
@@ -362,7 +398,7 @@ export default function Home() {
               type="button"
               onClick={handleSubmit}
               disabled={loading || !file}
-              className="rounded-xl bg-white px-6 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="group rounded-xl bg-white px-6 py-3 font-semibold text-slate-950 shadow-[0_8px_30px_rgba(255,255,255,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-200 hover:shadow-[0_12px_35px_rgba(255,255,255,0.12)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Extracting..." : "Extract PDF"}
             </button>
@@ -380,8 +416,9 @@ export default function Home() {
         </div>
 
         {result && (
-          <section className="animate-fade-up mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-xl backdrop-blur-xl">
+          <section className="animate-card-in mt-8 rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
             <div className="flex flex-wrap items-center justify-between gap-3">
+
               <div>
                 <h2 className="text-xl font-semibold">PDF extracted successfully</h2>
                 <p className="mt-1 text-sm text-slate-400">
@@ -409,11 +446,11 @@ export default function Home() {
             </div>
 
             {analysis && (
-              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-5">
+              <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/80 p-5 shadow-inner shadow-blue-950/10">
                 <h3 className="text-lg font-semibold">AI syllabus structure</h3>
                 <div className="mt-5 space-y-6">
                   {analysis.subjects?.map((subject, subjectIndex) => (
-                    <div key={subjectIndex} className="rounded-xl border border-slate-800 p-4">
+                    <div key={subjectIndex} className="group rounded-xl border border-slate-800 bg-slate-950/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/25 hover:bg-blue-500/[0.02]">
                       <h4 className="font-semibold">
                         {subject.name}
                         {subject.code ? <span className="ml-2 text-sm text-slate-500">({subject.code})</span> : null}
@@ -511,7 +548,7 @@ export default function Home() {
                 </button>
 
                 {quiz && (
-                  <div className="mt-6 space-y-5">
+                  <div className="mt-6 space-y-5 animate-card-in">
                     <div>
                       <h4 className="text-base font-semibold">
                         {quiz.subject} · {quiz.unit}
@@ -524,7 +561,7 @@ export default function Home() {
                     {quiz.questions.map((question, questionIndex) => (
                       <div
                         key={questionIndex}
-                        className="rounded-xl border border-slate-800 p-4"
+                        className="group rounded-xl border border-slate-800 bg-slate-950/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/25 hover:bg-blue-500/[0.02]"
                       >
                         <p className="font-medium text-slate-200">
                           {questionIndex + 1}. {question.question}
@@ -693,12 +730,12 @@ export default function Home() {
                         onClick={downloadStudyPlan}
                         className="mt-3 rounded-xl border border-emerald-800 bg-emerald-950/30 px-5 py-3 font-semibold text-emerald-200 transition hover:-translate-y-0.5 hover:border-emerald-600 hover:bg-emerald-950/50"
                       >
-                        Download Study Plan PDF
+                        ↓ Download Study Plan PDF
                       </button>
                     )}
 
                     {studyPlan && (
-                      <div className="animate-fade-up mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl backdrop-blur-xl sm:p-5">
+                      <div className="animate-card-in mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-5">
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
                             <p className="text-xs uppercase tracking-wide text-slate-500">Plan</p>
@@ -717,7 +754,7 @@ export default function Home() {
                             </div>
                             <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
                               <div
-                                className="h-full rounded-full bg-emerald-500 transition-all"
+                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-700 shadow-[0_0_16px_rgba(16,185,129,0.35)]"
                                 style={{
                                   width: `${studyPlan.days?.length ? (Object.values(completedDays).filter(Boolean).length / studyPlan.days.length) * 100 : 0}%`
                                 }}
@@ -848,7 +885,7 @@ export default function Home() {
             (item) => (
               <span
                 key={item}
-                className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300"
+                className="rounded-full border border-slate-700 bg-slate-900/40 px-4 py-2 text-sm text-slate-300 transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-500 hover:bg-slate-900"
               >
                 {item}
               </span>
