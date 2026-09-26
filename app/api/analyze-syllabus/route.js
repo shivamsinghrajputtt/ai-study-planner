@@ -3,8 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 export const runtime = "nodejs";
 
 const MAX_TEXT_LENGTH = 100000;
-const CHUNK_SIZE = 10000;
-const CHUNK_OVERLAP = 500;
+const CHUNK_SIZE = 18000;
+const CHUNK_OVERLAP = 600;
 
 const schema = {
   type: "object",
@@ -147,7 +147,7 @@ ${chunk}`;
     input: prompt,
     generation_config: {
       thinking_level: "minimal",
-      max_output_tokens: 2200
+      max_output_tokens: 1800
     },
     response_format: {
       type: "text",
