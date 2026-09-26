@@ -267,7 +267,7 @@ export default function Home() {
     <main className="min-h-screen bg-slate-950 text-white">
       <section className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
         <p className="text-sm font-medium uppercase tracking-[0.25em] text-slate-400">
-          AI Study Planner · V0.1
+          AI Study Planner · V0.4
         </p>
 
         <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">
@@ -275,8 +275,8 @@ export default function Home() {
         </h1>
 
         <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          Start by uploading a syllabus PDF. We&apos;ll extract its text so the
-          next version can identify topics with AI.
+          Upload a syllabus PDF, identify its structure with AI, test your understanding,
+          detect weak topics, and build a personalized study plan.
         </p>
 
         <div
@@ -311,7 +311,7 @@ export default function Home() {
           </div>
 
           <p className="mt-3 text-xs text-slate-500">
-            V0.1 limit: PDF files up to 10 MB. Text-based PDFs work best.
+            PDF files up to 10 MB. Text-based PDFs are fastest; scanned PDFs can use AI OCR.
           </p>
 
           {error && (
