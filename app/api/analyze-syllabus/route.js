@@ -3,8 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 export const runtime = "nodejs";
 
 const MAX_TEXT_LENGTH = 100000;
-const CHUNK_SIZE = 18000;
-const CHUNK_OVERLAP = 600;
+const CHUNK_SIZE = 6000;
+const CHUNK_OVERLAP = 500;
 
 const schema = {
   type: "object",
@@ -147,7 +147,7 @@ ${chunk}`;
     input: prompt,
     generation_config: {
       thinking_level: "minimal",
-      max_output_tokens: 1800
+      max_output_tokens: 3000
     },
     response_format: {
       type: "text",
@@ -157,7 +157,16 @@ ${chunk}`;
   };
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const interaction = await ai.interactions.create(request);
+    const retryRequest = {
+      ...request,
+      input:
+        prompt +
+        "\n\nRETRY: Keep the response compact. Include only the syllabus structure explicitly visible in this chunk. Prefer concise topic names and omit repeated or secondary details so the complete JSON can finish within the output limit."
+    };
+
+    const interaction = await ai.interactions.create(
+      attempt === 0 ? request : retryRequest
+    );
 
     if (interaction.status === "incomplete") {
       if (attempt === 1) {
