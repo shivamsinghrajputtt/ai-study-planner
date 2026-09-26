@@ -8,7 +8,7 @@ The project is being developed incrementally — starting with a working PDF →
 
 ## 🚀 Current Status
 
-**Working: V0.2 — AI Syllabus Analysis + Quiz**
+**Working: V0.4 — AI Syllabus Analysis + Quiz + Weak Topic Detection + Study Plan**
 
 The current end-to-end flow is:
 
@@ -17,7 +17,7 @@ Syllabus PDF
     ↓
 PDF text extraction
     ↓
-AI syllabus analysis
+AI syllabus analysis (chunked for large PDFs)
     ↓
 Subjects → Units → Topics
     ↓
@@ -28,6 +28,12 @@ AI-generated quiz
 Answer checking + explanations
     ↓
 Score
+    ↓
+Weak topics
+    ↓
+Exam date + daily study time
+    ↓
+Personalized study plan
 ```
 
 ### Verified capabilities
@@ -40,9 +46,11 @@ Score
 - ✅ Check answers automatically
 - 💡 Show explanations for answers
 - 📊 Calculate quiz score
+- 🎯 Detect weak topics from incorrect answers
+- 📅 Generate a day-by-day study plan
 - 🔐 Keep the Gemini API key server-side using environment variables
 
-A real syllabus test has been completed successfully: a **27-page PDF with 48,918 extracted characters** was processed, structured with AI, and used to generate a working quiz.
+A real syllabus test has been completed successfully: a **27-page PDF with 48,918 extracted characters** was extracted and processed through the AI pipeline. Large syllabus text is analyzed in manageable chunks and merged into a single structured result.
 
 ## 🧠 Why this project?
 
@@ -208,18 +216,18 @@ The student can then select a unit and generate a focused quiz instead of receiv
 - Explanations
 - Score calculation
 
-### V0.3 — Weak Topic Detection 🔜
+### V0.3 — Weak Topic Detection ✅
 - Map incorrect answers to topics
 - Identify weak topics
 - Show weakness summary
-- Track quiz performance
 
-### V0.4 — Personalized Study Plan 🔜
+### V0.4 — Personalized Study Plan ✅
 - Exam date
 - Available study time
 - Weak topics
 - Topic priority
 - Day-by-day study plan
+- Fallback plan generation when AI output is unavailable
 
 ### V1.0 — Personal Study Dashboard 🔜
 - Authentication
