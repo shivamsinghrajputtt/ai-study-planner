@@ -319,7 +319,7 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+    <main className="relative min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(59,130,246,0.12),transparent_28%),radial-gradient(circle_at_80%_35%,rgba(16,185,129,0.08),transparent_25%)]" />
       <div className="pointer-events-none absolute left-[8%] top-24 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl animate-pulse" />
       <div className="pointer-events-none absolute right-[8%] top-[42rem] h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
@@ -474,7 +474,7 @@ export default function Home() {
             )}
 
             {analysis?.subjects?.length > 0 && (
-              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-5">
+              <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-4 sm:p-5">
                 <h3 className="text-lg font-semibold">Generate a Quiz</h3>
                 <p className="mt-1 text-sm text-slate-400">
                   Choose one subject and unit. The AI will create questions only from that unit&apos;s topics.
@@ -716,23 +716,25 @@ export default function Home() {
                       </label>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={generateStudyPlan}
-                      disabled={studyPlanLoading || !examDate}
-                      className="mt-5 rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {studyPlanLoading ? "Creating Study Plan..." : studyPlan ? "Regenerate Study Plan" : "Create Study Plan"}
-                    </button>
-                    {studyPlan && (
+                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                       <button
                         type="button"
-                        onClick={downloadStudyPlan}
-                        className="mt-3 rounded-xl border border-emerald-800 bg-emerald-950/30 px-5 py-3 font-semibold text-emerald-200 transition hover:-translate-y-0.5 hover:border-emerald-600 hover:bg-emerald-950/50"
+                        onClick={generateStudyPlan}
+                        disabled={studyPlanLoading || !examDate}
+                        className="w-full rounded-xl bg-white px-5 py-3 font-semibold text-slate-950 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                       >
-                        ↓ Download Study Plan PDF
+                        {studyPlanLoading ? "Creating Study Plan..." : studyPlan ? "Regenerate Study Plan" : "Create Study Plan"}
                       </button>
-                    )}
+                      {studyPlan && (
+                        <button
+                          type="button"
+                          onClick={downloadStudyPlan}
+                          className="w-full rounded-xl border border-emerald-800 bg-emerald-950/30 px-5 py-3 font-semibold text-emerald-200 transition hover:-translate-y-0.5 hover:border-emerald-600 hover:bg-emerald-950/50 sm:w-auto"
+                        >
+                          ↓ Download Study Plan PDF
+                        </button>
+                      )}
+                    </div>
 
                     {studyPlan && (
                       <div className="animate-card-in mt-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-black/20 backdrop-blur-xl sm:p-5">
@@ -769,13 +771,13 @@ export default function Home() {
 
                         <div className="mt-5">
                           <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">Your study days</p>
-                          <div className="flex gap-2 overflow-x-auto pb-2">
+                          <div className="grid grid-cols-2 gap-2 pb-2 sm:flex sm:overflow-x-auto">
                             {studyPlan.days?.map((day) => (
                               <button
                                 key={day.day}
                                 type="button"
                                 onClick={() => setSelectedPlanDay(day.day)}
-                                className={`min-w-[78px] rounded-xl border px-3 py-2 text-left transition ${
+                                className={`min-w-0 rounded-xl border px-3 py-2 text-left transition ${
                                   selectedPlanDay === day.day
                                     ? "border-white bg-white text-slate-950"
                                     : "border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500"
@@ -797,7 +799,7 @@ export default function Home() {
 
                           return (
                             <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-5">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                   <p className="text-xs uppercase tracking-wide text-slate-500">Day {activeDay.day}</p>
                                   <h4 className="mt-1 text-xl font-semibold">{activeDay.focus}</h4>
@@ -813,7 +815,7 @@ export default function Home() {
                                       [activeDay.day]: !current[activeDay.day],
                                     }))
                                   }
-                                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                                  className={`w-full rounded-lg border px-3 py-2 text-xs font-medium transition sm:w-auto ${
                                     completedDays[activeDay.day]
                                       ? "border-emerald-700 bg-emerald-950/40 text-emerald-300"
                                       : "border-slate-700 text-slate-300 hover:border-slate-500"
@@ -838,7 +840,7 @@ export default function Home() {
                                 </div>
                               </div>
 
-                              <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-4">
+                              <div className="mt-6 flex items-center justify-between gap-2 border-t border-slate-800 pt-4">
                                 <button
                                   type="button"
                                   disabled={activeDay.day <= 1}
